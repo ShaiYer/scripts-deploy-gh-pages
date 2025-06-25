@@ -1,7 +1,14 @@
 
-# 🚀 React + Vite Deployment to GitHub Pages
+# 🚀 Guide to implement AI studio project to GitHub Pages - project React + Vite Deployment 
 
 This document provides step-by-step instructions to install, run, deploy, and sync updates to a React + Vite app hosted on GitHub Pages.
+
+## Implementation examples
+
+[Google AI project built with React](https://aistudio.google.com/app/apps/drive/1k0e6q34-_nZ_XzEbSErVRi9wplEL_OCZ?showPreview=true&resourceKey=)
+
+[GitHub pages example - React Robo Run](https://shaiyer.github.io/react-robo-runner/)
+
 
 ---
 
