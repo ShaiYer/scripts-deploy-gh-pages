@@ -52,6 +52,7 @@ Add the required dependency for GitHub Pages deployment:
 
 ```bash
 npm install --save-dev gh-pages
+npm install --save-dev @vitejs/plugin-react
 ```
 
 
