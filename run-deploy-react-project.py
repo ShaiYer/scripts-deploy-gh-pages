@@ -274,8 +274,6 @@ def generate_config(verbose=False, dry_run=False):
     """Generate config-deploy.conf file for deployment configuration"""
     index_file = "index.tsx"
     config_file = "config-deploy.conf"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    example_config = os.path.join(script_dir, 'config-deploy-example.conf')
 
     # Check if index.tsx exists
     if not os.path.exists(index_file):
@@ -287,20 +285,15 @@ def generate_config(verbose=False, dry_run=False):
         print(f"Error: {config_file} already exists.")
         sys.exit(1)
 
-    # Check if example config exists
-    if not os.path.exists(example_config):
-        print(f"Error: Example config file {example_config} not found")
-        sys.exit(1)
-
     if verbose:
         print(f"Preparing to create {config_file}")
 
-    try:
-        with open(example_config, 'r') as f:
-            content = f.read()
-    except Exception as e:
-        print(f"Error reading example config file: {str(e)}")
-        sys.exit(1)
+    # Create the file with the specified content
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    example_config = os.path.join(script_dir, 'config-deploy-example.conf')
+    
+    with open(example_config, 'r') as f:
+        content = f.read()
 
     if dry_run:
         print(f"[DRY RUN] Would create {config_file}")
@@ -320,8 +313,7 @@ def update_index_tsx(verbose=False, dry_run=False):
     """Update index.tsx file with the template for React deployment"""
     index_file = "index.tsx"
     backup_file = "index.org.tsx"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    template_file = os.path.join(script_dir, "index.deploy.template.tsx")
+    template_file = "index.deploy.template.tsx"
 
     # Check if index.tsx exists
     if not os.path.exists(index_file):

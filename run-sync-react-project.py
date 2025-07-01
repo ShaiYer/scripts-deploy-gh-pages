@@ -25,9 +25,9 @@ def get_random_number():
 
 def confirm_index_exists(folder, label):
     """Check that index.html exists in the specified folder"""
-    index_path = os.path.join(folder, "index.html")
+    index_path = os.path.join(os.path.abspath(folder), "index.html") 
     if not os.path.isfile(index_path):
-        print(f"Warning: index.html not found in {label} ({folder})")
+        print(f"Warning: index.html not found in {label} ({index_path})")
         try:
             response = input("Continue anyway? [y/N]: ").strip().lower()
         except KeyboardInterrupt:
@@ -48,6 +48,8 @@ def load_config(path):
             result['source'] = default['source']
         if 'target' in default:
             result['target'] = default['target']
+        if 'ignore_index_tsx' in default:
+            result['ignore_index_tsx'] = default.getboolean('ignore_index_tsx', fallback=False)
     return result
 
 def main():
@@ -68,25 +70,65 @@ def main():
     source = args.source or os.getcwd()
     target = args.target or os.getcwd()
 
+    # Strip any surrounding quotes from source and target paths
+    if source and ((source.startswith('"') and source.endswith('"')) or (source.startswith("'") and source.endswith("'"))):
+        source = source[1:-1]
+    if target and ((target.startswith('"') and target.endswith('"')) or (target.startswith("'") and target.endswith("'"))):
+        target = target[1:-1]
+
     # Check for default config file if --no-config is not specified and --config is not provided
-    # Get the directory where the script is running
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_config = os.path.join(script_dir, 'config-deploy.conf')
-    if not args.no_config and not args.config and os.path.isfile(default_config):
+    # Look for the config file in the current working directory
+    default_config = os.path.join(os.getcwd(), 'config-deploy.conf')
+    if not args.no_config and not args.config:
         if args.verbose:
-            print(f"Loading default config file: {default_config}")
-        config_data = load_config(default_config)
-        source = config_data.get('source', source)
-        target = config_data.get('target', target)
+            print(f"Trying to reach config file at: {default_config}")
+        if os.path.isfile(default_config):
+            if args.verbose:
+                print(f"Config file found. Loading default config file: {default_config}")
+            config_data = load_config(default_config)
+            # Only use source/target from config if not provided as arguments
+            if args.source is None:
+                source = config_data.get('source', source)
+                # Strip any surrounding quotes from source path loaded from config
+                if source and ((source.startswith('"') and source.endswith('"')) or (source.startswith("'") and source.endswith("'"))):
+                    source = source[1:-1]
+                if args.verbose and 'source' in config_data:
+                    print(f"Using source from config file: {source}")
+            if args.target is None:
+                target = config_data.get('target', target)
+                # Strip any surrounding quotes from target path loaded from config
+                if target and ((target.startswith('"') and target.endswith('"')) or (target.startswith("'") and target.endswith("'"))):
+                    target = target[1:-1]
+                if args.verbose and 'target' in config_data:
+                    print(f"Using target from config file: {target}")
+        elif args.verbose:
+            print(f"Config file not found at: {default_config}")
 
     # Override with explicit config file if provided
     if args.config:
+        if args.verbose:
+            print(f"Trying to reach config file at: {args.config}")
         if not os.path.isfile(args.config):
             print(f"Error: Config file not found: {args.config}")
             sys.exit(1)
+        if args.verbose:
+            print(f"Config file found. Loading config file: {args.config}")
         config_data = load_config(args.config)
-        source = config_data.get('source', source)
-        target = config_data.get('target', target)
+        # Only use source/target from config if not provided as arguments
+        if args.source is None:
+            source = config_data.get('source', source)
+            # Strip any surrounding quotes from source path loaded from config
+            if source and ((source.startswith('"') and source.endswith('"')) or (source.startswith("'") and source.endswith("'"))):
+                source = source[1:-1]
+            if args.verbose and 'source' in config_data:
+                print(f"Using source from config file: {source}")
+        if args.target is None:
+            target = config_data.get('target', target)
+            # Strip any surrounding quotes from target path loaded from config
+            if target and ((target.startswith('"') and target.endswith('"')) or (target.startswith("'") and target.endswith("'"))):
+                target = target[1:-1]
+            if args.verbose and 'target' in config_data:
+                print(f"Using target from config file: {target}")
 
     # Ensure at least one of source or target is valid
     if not source and not target:
@@ -108,6 +150,13 @@ def main():
         "--exclude=package.json",
         "--exclude=package-lock.json",
     ]
+
+    # Add index.tsx to exclusions if configured
+    ignore_index_tsx = config_data.get('ignore_index_tsx', False) if 'config_data' in locals() else False
+    if ignore_index_tsx:
+        rsync_cmd.append("--exclude=index.tsx")
+        if args.verbose:
+            print("Excluding index.tsx from sync as configured")
 
     # Add dry-run flag if requested
     if args.dry_run:
