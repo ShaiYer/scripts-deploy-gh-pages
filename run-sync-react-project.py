@@ -60,6 +60,7 @@ def main():
     parser.add_argument('--dry-run', '-n', action='store_true', help='Perform a dry run')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output')
     parser.add_argument('--config', '-c', help='Path to config file (INI format with [DEFAULT] section)')
+    parser.add_argument('--no-config', action='store_true', help='Skip loading the default config file')
 
     args = parser.parse_args()
 
@@ -67,7 +68,18 @@ def main():
     source = args.source or os.getcwd()
     target = args.target or os.getcwd()
 
-    # Override with config file if provided
+    # Check for default config file if --no-config is not specified and --config is not provided
+    # Get the directory where the script is running
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    default_config = os.path.join(script_dir, 'config-deploy.conf')
+    if not args.no_config and not args.config and os.path.isfile(default_config):
+        if args.verbose:
+            print(f"Loading default config file: {default_config}")
+        config_data = load_config(default_config)
+        source = config_data.get('source', source)
+        target = config_data.get('target', target)
+
+    # Override with explicit config file if provided
     if args.config:
         if not os.path.isfile(args.config):
             print(f"Error: Config file not found: {args.config}")

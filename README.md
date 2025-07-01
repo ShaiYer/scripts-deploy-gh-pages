@@ -32,7 +32,7 @@ The synchronization tools and workflow provided here eliminate common issues whe
 
 1. Develop your application in Google AI Studio
 2. Download your project files
-3. Follow this guide to configure and deploy to GitHub Pages
+3. Follow this guide to configure and deploy to GitHub Pages or in other Apps
 4. Use the provided synchronization tools when updating your project
 
 
@@ -191,18 +191,28 @@ This repository includes a Python script (`run-sync-react-project.py`) that auto
   ./run-sync-react-project.py --source=/path/to/downloaded/folder --target=/path/to/your/git/project --dry-run --verbose
   ```
 
-* **Configuration File** - Save your settings in a `config.ini` file:
+
+* **Configuration File** - Save your settings in a configuration file:
   ```ini
   [DEFAULT]
   source = /path/to/downloaded/folder
   target = /path/to/your/git/project
   ```
 
-  Then use it with:
+ The script will automatically look for a file named `config-deploy.conf` in the directory where the script is located. If found, it will use the settings from this file without requiring any additional parameters:
   ```bash
-  ./run-sync-react-project.py --config=config.ini --verbose
+  ./run-sync-react-project.py --verbose
   ```
 
+  You can also specify a different configuration file:
+  ```bash
+  ./run-sync-react-project.py --config=my-config.ini --verbose
+  ```
+
+  To skip loading the default configuration file, use the `--no-config` flag:
+  ```bash
+  ./run-sync-react-project.py --no-config --source=/path/to/downloaded/folder --target=/path/to/your/git/project --verbose
+  ```
 ### 🛠 Manual Synchronization with `rsync`
 
 If you prefer to use `rsync` directly, run the following command from your downloaded folder:
