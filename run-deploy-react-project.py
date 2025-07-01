@@ -38,7 +38,8 @@ def get_user_action_choice():
         "build-gh-pages", 
         "deploy-gh-pages", 
         "generate-bundle",
-        "update-index-tsx"
+        "update-index-tsx",
+        "generate-config"
     ]
 
     print("Please select an action:")
@@ -269,11 +270,58 @@ def generate_bundle(verbose=False, dry_run=False):
         print("Error: 'vite' command not found. Make sure Vite is installed.")
         sys.exit(1)
 
+def generate_config(verbose=False, dry_run=False):
+    """Generate config-deploy.conf file for deployment configuration"""
+    index_file = "index.tsx"
+    config_file = "config-deploy.conf"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    example_config = os.path.join(script_dir, 'config-deploy-example.conf')
+
+    # Check if index.tsx exists
+    if not os.path.exists(index_file):
+        print(f"Error: {index_file} not found. Not a React folder with {os.getcwd()}")
+        sys.exit(1)
+
+    # Check if config-deploy.conf already exists
+    if os.path.exists(config_file):
+        print(f"Error: {config_file} already exists.")
+        sys.exit(1)
+
+    # Check if example config exists
+    if not os.path.exists(example_config):
+        print(f"Error: Example config file {example_config} not found")
+        sys.exit(1)
+
+    if verbose:
+        print(f"Preparing to create {config_file}")
+
+    try:
+        with open(example_config, 'r') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Error reading example config file: {str(e)}")
+        sys.exit(1)
+
+    if dry_run:
+        print(f"[DRY RUN] Would create {config_file}")
+    else:
+        try:
+            with open(config_file, 'w') as f:
+                f.write(content)
+            print(f"Successfully created {config_file}")
+            return True
+        except Exception as e:
+            print(f"Error creating file: {str(e)}")
+            sys.exit(1)
+
+    return True
+
 def update_index_tsx(verbose=False, dry_run=False):
     """Update index.tsx file with the template for React deployment"""
     index_file = "index.tsx"
     backup_file = "index.org.tsx"
-    template_file = "index.deploy.template.tsx"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    template_file = os.path.join(script_dir, "index.deploy.template.tsx")
 
     # Check if index.tsx exists
     if not os.path.exists(index_file):
@@ -340,7 +388,8 @@ def main():
         'build-gh-pages', 
         'deploy-gh-pages', 
         'generate-bundle',
-        'update-index-tsx'
+        'update-index-tsx',
+        'generate-config'
     ], help='Action to perform')
     parser.add_argument('--app-base-path', help='Base path for GitHub Pages (e.g., /user/repo/)')
     parser.add_argument('--app-name', help='Application name for bundle generation')
@@ -406,6 +455,9 @@ def main():
 
     elif action == 'update-index-tsx':
         update_index_tsx(verbose=args.verbose, dry_run=args.dry_run)
+
+    elif action == 'generate-config':
+        generate_config(verbose=args.verbose, dry_run=args.dry_run)
 
 if __name__ == "__main__":
     main()
