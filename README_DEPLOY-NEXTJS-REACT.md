@@ -21,6 +21,13 @@ npm install --save-dev gh-pages
 ```
 
 ---
+## Switch to branch deploy and make changes to the config
+```bash
+$ git checkout deploy
+```
+
+---
+
 
 ## ⚙️ Step 2: Configure `next.config.js`
 
@@ -57,7 +64,7 @@ const nextConfig: NextConfig = {
    },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
 
 ```
 
@@ -65,7 +72,7 @@ Replace `your-repo` with the name of your GitHub repository.
 
 ---
 
-## 📁 Step 3: Add Scripts to `package.json`
+## 📁 Step 3: Add Scripts to `package.json` or run manually
 
 Update your `package.json` with the following scripts:
 
@@ -87,7 +94,16 @@ Update your `package.json` with the following scripts:
 
 ## 🧱 Step 4: Build and Deploy
 
+### If script are not added to the 'package.json'
 ```bash
+npm run build && touch out/.nojekyll
+npx gh-pages -d out
+```
+
+
+
+```bash
+npm run predeploy
 npm run deploy
 ```
 

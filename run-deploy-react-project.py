@@ -18,6 +18,8 @@ import os
 import subprocess
 import configparser
 import sys
+import shutil
+import json
 
 def load_config(path):
     """Load configuration values from a config file if provided"""
@@ -39,7 +41,8 @@ def get_user_action_choice():
         "deploy-gh-pages", 
         "generate-bundle",
         "update-index-tsx",
-        "generate-config"
+        "generate-config",
+        "deploy-next-gh-pages"
     ]
 
     print("Please select an action:")
@@ -236,6 +239,141 @@ def deploy_gh_pages(verbose=False, dry_run=False):
         print("Error: 'npm' command not found. Make sure npm is installed.")
         sys.exit(1)
 
+
+# New Area for next scripts
+def deploy_next_gh_pages(app_base_path, verbose=False, dry_run=False):
+    """Deploy Next.js project to GitHub Pages"""
+
+    local_config = "next.config.ts"
+    backup_config = "next.config.org.ts"
+    template_config_name = "config-next.config.ts"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Step 1: Backup existing local config if exists
+    if os.path.exists(local_config):
+        if verbose:
+            print(f"Backing up {local_config} to {backup_config}")
+        if not dry_run:
+            shutil.move(local_config, backup_config)
+
+    # Step 2: Check if local config already exists (after backup, it doesn't)
+    local_config_exists = os.path.exists(local_config)
+
+    if not local_config_exists:
+        if not app_base_path:
+            print("[ERROR] Missing app_base_path (repo name). Exiting.")
+            sys.exit(1)
+
+        template_path = os.path.join(script_dir, template_config_name)
+        if not os.path.exists(template_path):
+            print(f"[ERROR] Template config file not found: {template_path}")
+            sys.exit(1)
+
+        # Read and modify template
+        with open(template_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        content = content.replace("const repo = 'repo-name';", f"const repo = '{app_base_path}';")
+
+        if verbose:
+            print(f"Writing modified config to {local_config}")
+        if dry_run:
+            print("[DRY RUN] Would write the following content:")
+            print(content)
+        else:
+            with open(local_config, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+    else:
+        if verbose:
+            print(f"Reusing existing config file: {local_config}")
+
+    # Ensure next.config.ts exists now
+    if not os.path.exists(local_config):
+        print(f"[ERROR] Local config file {local_config} was not created.")
+        sys.exit(1)
+
+    print(f"[SUCCESS] Local Next.js config is ready: {local_config}")
+
+    # Step 3: Update package.json scripts
+    package_file = "package.json"
+    if not os.path.exists(package_file):
+        print("[ERROR] package.json not found in current directory")
+        sys.exit(1)
+
+    with open(package_file, 'r+', encoding='utf-8') as f:
+        data = json.load(f)
+        scripts = data.get("scripts", {})
+
+        modified = False
+        if "export" not in scripts:
+            scripts["export"] = "next export"
+            modified = True
+        if "predeploy" not in scripts:
+            scripts["predeploy"] = "npm run build && touch out/.nojekyll"
+            modified = True
+        if "deploy" not in scripts:
+            scripts["deploy"] = "gh-pages -d out"
+            modified = True
+
+        if modified:
+            if verbose:
+                print("Updating package.json scripts")
+            if not dry_run:
+                f.seek(0)
+                json.dump(data, f, indent=2)
+                f.truncate()
+            else:
+                print("[DRY RUN] Would update package.json scripts:")
+                print(json.dumps(scripts, indent=2))
+
+    # Step 4: Run predeploy and deploy
+    if dry_run:
+        print("[DRY RUN] Would run: npm run predeploy")
+        print("[DRY RUN] Would run: npm run deploy")
+    else:
+        try:
+            print("Running: npm run predeploy")
+            subprocess.run(["npm", "run", "predeploy"], check=True)
+            print("Running: npm run deploy")
+            subprocess.run(["npm", "run", "deploy"], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] Deployment failed with exit code {e.returncode}")
+            sys.exit(e.returncode)
+
+    print("[SUCCESS] Deployment to GitHub Pages completed.")
+    return True
+
+
+
+
+def get_dir_deploy_script():
+    return os.path.dirname(os.path.abspath(__file__))
+
+def get_dir_current_folder():
+    return os.path.abspath(os.getcwd())
+
+
+def get_file_path(file_name, is_dir_deploy_script=True):
+    # Create the file with the specified content
+
+    if is_dir_deploy_script:
+        script_dir = get_dir_deploy_script()
+    else:
+        script_dir = get_dir_current_folder()
+
+    file_path = os.path.join(script_dir, file_name)
+
+    print(file_path)
+
+    if os.path.exists(file_path):
+        return file_path
+
+    return False
+
+
+# end Area for next deploy
+
 def generate_bundle(verbose=False, dry_run=False):
     """Generate a bundle using the react-angular config"""
     config_file = "vite.react-angular.config.ts"
@@ -381,7 +519,8 @@ def main():
         'deploy-gh-pages', 
         'generate-bundle',
         'update-index-tsx',
-        'generate-config'
+        'generate-config',
+        'deploy-next-gh-pages'
     ], help='Action to perform')
     parser.add_argument('--app-base-path', help='Base path for GitHub Pages (e.g., /user/repo/)')
     parser.add_argument('--app-name', help='Application name for bundle generation')
@@ -395,9 +534,14 @@ def main():
     # Initialize configuration
     config = {}
 
+    if args.verbose:
+        print('start main')
+
     # Check for default config file if --no-config is not specified and --config is not provided
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = get_dir_current_folder()
     default_config = os.path.join(script_dir, 'config-deploy.conf')
+    if args.verbose:
+        print(default_config)
     if not args.no_config and not args.config and os.path.isfile(default_config):
         if args.verbose:
             print(f"Loading default config file: {default_config}")
@@ -451,5 +595,11 @@ def main():
     elif action == 'generate-config':
         generate_config(verbose=args.verbose, dry_run=args.dry_run)
 
+    elif action == 'deploy-next-gh-pages':
+        print('deploy-next-gh-pages')
+        if not app_base_path:
+                    print("[ERROR] Missing app_base_path (repo name). Exiting.")
+                    sys.exit(1)
+        deploy_next_gh_pages(app_base_path, verbose=args.verbose, dry_run=args.dry_run)
 if __name__ == "__main__":
     main()

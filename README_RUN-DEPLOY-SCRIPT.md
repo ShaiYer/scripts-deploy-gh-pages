@@ -90,6 +90,30 @@ Generates a bundle using the `vite.react-angular.config.ts` configuration.
 
 This action requires that the `vite.react-angular.config.ts` file exists.
 
+
+#### 6. deploy-next-gh-pages
+
+Switch to deploy branch and rebase from master.
+At the end of the deploy - run $ git reset / $ git stash
+
+Deploy react app to gh-pages from firebase studio AI. Requires on of the params:
+- --app-base-path=<repo-path>
+- Alternatively, can add `config-deploy.conf`
+
+```ini
+[DEFAULT]
+app_base_path = fb-fly-guy
+
+[EXAMPLE]
+app_base_path = '<repository_name>'
+```
+```bash
+python ../../github-pages-deploy-scripts/run-deploy-react-project.py --action=deploy-next-gh-pages -v
+```
+
+
+
+
 ### Configuration Options
 
 #### Command-Line Options
